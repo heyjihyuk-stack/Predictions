@@ -14,4 +14,6 @@ settings = get_settings()
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=settings.FLASK_DEBUG)
+    import sys
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
+    app.run(host="0.0.0.0", port=port, debug=settings.FLASK_DEBUG)
