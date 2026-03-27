@@ -1,0 +1,44 @@
+# News and data sources for market predictions and global affairs analysis.
+# Add/remove feeds and API queries here — no code changes needed.
+
+rss_feeds:
+  # Financial & Markets
+  - url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC&region=US&lang=en-US"
+    category: "markets"
+  - url: "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+    category: "markets"
+  - url: "https://feeds.bloomberg.com/markets/news.rss"
+    category: "markets"
+
+  # Global News & Geopolitics
+  - url: "https://feeds.bbci.co.uk/news/world/rss.xml"
+    category: "geopolitics"
+  - url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+    category: "geopolitics"
+  - url: "https://www.aljazeera.com/xml/rss/all.xml"
+    category: "geopolitics"
+
+  # Economics & Policy
+  - url: "https://www.economist.com/finance-and-economics/rss.xml"
+    category: "economics"
+  - url: "https://feeds.reuters.com/reuters/businessNews"
+    category: "economics"
+
+  # Technology & Innovation
+  - url: "https://feeds.arstechnica.com/arstechnica/technology-lab"
+    category: "technology"
+
+newsapi_queries:
+  - query: "stock market economy"
+    category: "markets"
+  - query: "geopolitics international relations"
+    category: "geopolitics"
+  - query: "central bank monetary policy"
+    category: "economics"
+
+finnhub_symbols:
+  - "SPY"
+  - "QQQ"
+  - "DIA"
+  - "GLD"
+  - "TLT"

@@ -1,0 +1,10 @@
+services:
+  predictions:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./config/sources.yaml:/app/config/sources.yaml
+    restart: unless-stopped
