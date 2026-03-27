@@ -12,7 +12,8 @@
 <header class="app-header">
   <h1><span>Predictions</span> | Market & Global Affairs</h1>
   <nav class="nav-tabs">
-    <button class="nav-tab active" data-tab="markets">Markets</button>
+    <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+    <button class="nav-tab" data-tab="markets">Markets</button>
     <button class="nav-tab" data-tab="forex">Forex</button>
     <button class="nav-tab" data-tab="crypto">Crypto</button>
     <button class="nav-tab" data-tab="news">News Impact</button>
@@ -21,16 +22,32 @@
 </header>
 
 <main class="container">
-  <!-- Prediction Change Alerts -->
   <div id="change-alerts"></div>
 
+  <!-- Dashboard Tab -->
+  <section id="tab-dashboard" class="tab-content">
+    <div class="loading" id="dashboard-loading"><div class="spinner"></div> Loading dashboard...</div>
+    <div id="dashboard-content" style="display:none;">
+      <!-- Sentiment Gauge -->
+      <div class="card" id="sentiment-card">
+        <div class="card-header"><h2>Market Sentiment</h2></div>
+        <div id="sentiment-gauge"></div>
+      </div>
+      <!-- Market Snapshot Row -->
+      <div class="section-label">Markets at a Glance</div>
+      <div class="market-grid market-grid-compact" id="dash-markets"></div>
+      <!-- Top News -->
+      <div class="section-label" style="margin-top:20px;">Top Market-Moving News</div>
+      <div id="dash-top-news"></div>
+    </div>
+  </section>
+
   <!-- Markets Tab -->
-  <section id="tab-markets" class="tab-content">
+  <section id="tab-markets" class="tab-content" style="display:none;">
     <div class="section-label">Global Stock Indices</div>
     <div id="indices-grid" class="market-grid">
       <div class="loading"><div class="spinner"></div> Loading market data...</div>
     </div>
-    <!-- Detail view (hidden by default) -->
     <div id="index-detail" class="card" style="display:none;">
       <div class="card-header">
         <h2 id="index-detail-name"></h2>
@@ -89,15 +106,9 @@
       <div class="chart-container"><canvas id="crypto-chart"></canvas></div>
       <div class="predictions-grid" id="crypto-predictions"></div>
     </div>
-
-    <!-- Options Data Panel -->
     <div id="options-panel" class="card" style="display:none;">
-      <div class="card-header">
-        <h2 id="options-title">Options Data</h2>
-      </div>
-      <!-- Options stats row -->
+      <div class="card-header"><h2 id="options-title">Options Data</h2></div>
       <div class="market-grid" id="options-stats" style="margin-bottom:16px;"></div>
-      <!-- Put/Call OI chart -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div>
           <div class="section-label">Put/Call Open Interest</div>
@@ -108,7 +119,6 @@
           <div class="chart-container" style="height:250px;"><canvas id="iv-chart"></canvas></div>
         </div>
       </div>
-      <!-- Expirations table -->
       <div class="section-label" style="margin-top:16px;">Key Expirations</div>
       <div style="overflow-x:auto;">
         <table id="expirations-table" style="width:100%;font-size:13px;border-collapse:collapse;">
@@ -135,11 +145,19 @@
     <div class="card">
       <div class="card-header">
         <h2>News Impact Index</h2>
-        <button class="period-btn active" onclick="loadNewsImpact()" style="background:var(--accent);color:#fff;padding:8px 16px;border-radius:6px;">Refresh</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="period-selector" id="news-sort-selector">
+            <button class="period-btn active" data-sort="impact">By Impact</button>
+            <button class="period-btn" data-sort="time">By Time</button>
+          </div>
+          <button class="period-btn" onclick="loadNewsImpact()" style="background:var(--accent);color:#fff;padding:6px 14px;border-radius:6px;">Refresh</button>
+        </div>
       </div>
-      <ul class="news-list" id="news-list">
+      <!-- Sentiment bar -->
+      <div id="news-sentiment-bar" style="margin-bottom:16px;"></div>
+      <div id="news-clusters">
         <div class="loading"><div class="spinner"></div> Analyzing news impact...</div>
-      </ul>
+      </div>
     </div>
   </section>
 

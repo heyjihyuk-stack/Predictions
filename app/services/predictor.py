@@ -138,7 +138,7 @@ def _fallback_forecast(technical: dict, horizon: str) -> dict:
     volatility = technical.get("volatility", 1)
 
     # Scale projection by horizon
-    horizon_multiplier = {"weekly": 1, "monthly": 4, "quarterly": 13, "yearly": 52}.get(horizon, 4)
+    horizon_multiplier = {"daily": 0.2, "weekly": 1, "monthly": 4, "quarterly": 13, "yearly": 52}.get(horizon, 4)
     projected_move = (momentum / 100) * horizon_multiplier * 0.3  # Dampened projection
 
     target_mid = current * (1 + projected_move)
@@ -176,7 +176,7 @@ def generate_prediction(
     asset_name = asset_info.get("name", asset_id)
     technical = _technical_analysis(prices)
 
-    horizons = ["weekly", "monthly", "quarterly", "yearly"]
+    horizons = ["daily", "weekly", "monthly", "quarterly", "yearly"]
     predictions = {}
 
     for horizon in horizons:

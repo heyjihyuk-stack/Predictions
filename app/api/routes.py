@@ -23,7 +23,13 @@ from app.services.market_data import (
     get_forex_data,
     get_index_data,
 )
-from app.services.news_scorer import get_news_detail, get_related_news, score_news_batch
+from app.services.news_scorer import (
+    cluster_news,
+    get_market_sentiment_summary,
+    get_news_detail,
+    get_related_news,
+    score_news_batch,
+)
 from app.services.predictor import (
     generate_prediction,
     get_prediction_changes,
@@ -34,6 +40,35 @@ from app.services.reporter import generate_report
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__)
+
+
+# ── Dashboard ────────────────────────────────────────────────────────
+
+@api_bp.route("/dashboard", methods=["GET"])
+def dashboard():
+    """All-in-one dashboard: market snapshot, sentiment, top news."""
+    indices = get_all_indices_summary()
+    forex = get_all_forex_summary()
+    crypto = get_all_crypto_summary()
+
+    # Fetch and score news
+    articles = fetch_all()
+    scored = score_news_batch(articles)
+    clusters = cluster_news(scored)
+    sentiment = get_market_sentiment_summary(scored)
+
+    # Top 5 clusters by impact
+    top_clusters = sorted(clusters, key=lambda c: c["max_impact"], reverse=True)[:5]
+
+    return jsonify({
+        "indices": indices,
+        "forex": forex,
+        "crypto": crypto,
+        "sentiment": sentiment,
+        "top_news": top_clusters,
+        "total_articles": len(scored),
+        "timestamp": datetime.utcnow().isoformat(),
+    })
 
 
 # ── Health & Config ──────────────────────────────────────────────────
@@ -178,12 +213,24 @@ def prediction_changes():
 
 @api_bp.route("/news/impact", methods=["GET"])
 def news_impact():
-    """Fetch and score news articles for market impact (0-100)."""
+    """Fetch, score, and cluster news articles."""
     articles = fetch_all()
     scored = score_news_batch(articles)
+    clusters = cluster_news(scored)
+    sentiment = get_market_sentiment_summary(scored)
+
+    sort_by = request.args.get("sort", "impact")  # "impact" or "time"
+    if sort_by == "time":
+        clusters.sort(key=lambda c: c.get("latest_published") or "0", reverse=True)
+    else:
+        clusters.sort(key=lambda c: c["max_impact"], reverse=True)
+
     return jsonify({
         "count": len(scored),
+        "cluster_count": len(clusters),
+        "clusters": clusters,
         "articles": scored,
+        "sentiment": sentiment,
         "timestamp": datetime.utcnow().isoformat(),
     })
 
