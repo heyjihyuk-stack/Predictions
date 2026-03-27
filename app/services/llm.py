@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """OpenAI-compatible LLM client wrapper."""
 
 import json

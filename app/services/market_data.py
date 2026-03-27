@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Market data fetching for stock indices, forex pairs, and crypto.
 
 Uses free APIs (Yahoo Finance chart API, CoinGecko, Deribit) to get

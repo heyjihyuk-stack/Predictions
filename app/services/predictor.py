@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Prediction engine for market forecasts.
 
 Generates weekly, monthly, quarterly, yearly predictions using:

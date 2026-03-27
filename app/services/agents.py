@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Multi-agent simulation orchestrator."""
 
 import logging

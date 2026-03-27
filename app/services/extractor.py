@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Entity and relationship extraction from news articles."""
 
 import logging

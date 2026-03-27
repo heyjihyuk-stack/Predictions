@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Report generation from simulation results."""
 
 import logging

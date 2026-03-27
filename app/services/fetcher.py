@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """News and market data fetching from multiple sources."""
 
 import logging

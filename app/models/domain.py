@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Domain models for the predictions platform."""
 
 from dataclasses import dataclass, field

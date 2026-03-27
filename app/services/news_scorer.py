@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """News impact scorer - rates news articles 0-100 for market influence.
 
 Scores are based on:

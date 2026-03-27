@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Moderator agent — synthesizes all analyst views into a unified assessment."""
 
 import logging

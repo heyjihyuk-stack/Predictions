@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Base analyst agent class."""
 
 import logging
