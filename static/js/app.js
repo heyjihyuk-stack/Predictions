@@ -11,8 +11,12 @@ async function api(path) {
 let activeTab = 'markets';
 let indexChart = null;
 let forexChart = null;
+let cryptoChart = null;
+let pcOiChart = null;
+let ivChart = null;
 let selectedIndex = null;
 let selectedForex = null;
+let selectedCrypto = null;
 
 /* ── Tab Navigation ────────────────────────────────────────────────── */
 document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -23,9 +27,9 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
     document.querySelectorAll('.tab-content').forEach(s => s.style.display = 'none');
     document.getElementById('tab-' + activeTab).style.display = 'block';
 
-    // Load data on first visit
     if (activeTab === 'markets') loadIndices();
     if (activeTab === 'forex') loadForex();
+    if (activeTab === 'crypto') loadCrypto();
     if (activeTab === 'news') loadNewsImpact();
     if (activeTab === 'predictions') loadAllPredictions();
   });
@@ -50,7 +54,6 @@ async function loadIndices() {
           <div class="mini-chart"><canvas id="mini-${idx.id}" height="50"></canvas></div>
         </div>`;
     });
-    // Load mini charts
     data.indices.forEach(idx => loadMiniChart(idx.id, 'index'));
   } catch (e) {
     grid.innerHTML = `<div class="empty-state">Failed to load market data. ${e.message}</div>`;
@@ -76,7 +79,6 @@ async function loadIndexChart(indexId, period) {
   }
 }
 
-// Period selector for indices
 document.getElementById('index-period-selector')?.addEventListener('click', e => {
   if (e.target.classList.contains('period-btn') && selectedIndex) {
     document.querySelectorAll('#index-period-selector .period-btn').forEach(b => b.classList.remove('active'));
@@ -137,14 +139,223 @@ document.getElementById('forex-period-selector')?.addEventListener('click', e =>
   }
 });
 
+/* ── Crypto ────────────────────────────────────────────────────────── */
+async function loadCrypto() {
+  const grid = document.getElementById('crypto-grid');
+  try {
+    const data = await api('/markets/crypto');
+    grid.innerHTML = '';
+    data.crypto.forEach(c => {
+      const change = c.change_24h_pct || 0;
+      const changeClass = change >= 0 ? 'up' : 'down';
+      const changeSign = change >= 0 ? '+' : '';
+      const price = c.current_price ? formatNumber(c.current_price) : 'N/A';
+      const mcap = c.market_cap ? '$' + formatLargeNumber(c.market_cap) : '';
+      const vol = c.volume_24h ? '$' + formatLargeNumber(c.volume_24h) : '';
+
+      grid.innerHTML += `
+        <div class="market-tile" onclick="selectCrypto('${c.id}')">
+          <div class="name">${c.name} <span style="color:var(--text-dim);font-weight:400;">${c.symbol}</span></div>
+          <div class="price">$${price}</div>
+          <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}% (24h)</div>
+          <div class="crypto-meta">
+            <span>MCap: ${mcap}</span>
+            <span>Vol: ${vol}</span>
+            ${c.change_7d_pct != null ? `<span>7d: ${c.change_7d_pct >= 0 ? '+' : ''}${c.change_7d_pct.toFixed(2)}%</span>` : ''}
+          </div>
+          <div class="mini-chart"><canvas id="mini-${c.id}" height="50"></canvas></div>
+        </div>`;
+    });
+    data.crypto.forEach(c => loadMiniChart(c.id, 'crypto'));
+  } catch (e) {
+    grid.innerHTML = `<div class="empty-state">Failed to load crypto data. ${e.message}</div>`;
+  }
+}
+
+async function selectCrypto(cryptoId) {
+  selectedCrypto = cryptoId;
+  const detail = document.getElementById('crypto-detail');
+  detail.style.display = 'block';
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  loadCryptoChart(cryptoId, '1m');
+  loadPredictionCards(cryptoId, 'crypto', 'crypto-predictions');
+  loadOptionsData(cryptoId);
+}
+
+async function loadCryptoChart(cryptoId, period) {
+  try {
+    const data = await api(`/markets/crypto/${cryptoId}?period=${period}`);
+    document.getElementById('crypto-detail-name').textContent = data.name + ' (' + data.symbol + ')';
+    renderChart('crypto-chart', data, 'cryptoChart');
+  } catch (e) {
+    console.error('Crypto chart load failed:', e);
+  }
+}
+
+document.getElementById('crypto-period-selector')?.addEventListener('click', e => {
+  if (e.target.classList.contains('period-btn') && selectedCrypto) {
+    document.querySelectorAll('#crypto-period-selector .period-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    loadCryptoChart(selectedCrypto, e.target.dataset.period);
+  }
+});
+
+/* ── Options Data ─────────────────────────────────────────────────── */
+async function loadOptionsData(cryptoId) {
+  const panel = document.getElementById('options-panel');
+  panel.style.display = 'block';
+
+  const statsDiv = document.getElementById('options-stats');
+  statsDiv.innerHTML = '<div class="loading"><div class="spinner"></div> Loading options data...</div>';
+
+  try {
+    const data = await api(`/markets/crypto/${cryptoId}/options`);
+    document.getElementById('options-title').textContent = `${data.name} Options (Deribit)`;
+
+    // Stats tiles
+    const pcColor = data.put_call_ratio > 1 ? 'var(--red)' : data.put_call_ratio < 0.7 ? 'var(--green)' : 'var(--orange)';
+    statsDiv.innerHTML = `
+      <div class="stat-tile">
+        <div class="stat-label">Index Price</div>
+        <div class="stat-value">$${formatNumber(data.index_price)}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">Put/Call Ratio</div>
+        <div class="stat-value" style="color:${pcColor}">${data.put_call_ratio != null ? data.put_call_ratio.toFixed(3) : 'N/A'}</div>
+        <div class="stat-sub">${data.put_call_ratio > 1 ? 'Bearish bias' : data.put_call_ratio < 0.7 ? 'Bullish bias' : 'Neutral'}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">Avg Implied Vol</div>
+        <div class="stat-value">${data.implied_volatility != null ? data.implied_volatility.toFixed(1) + '%' : 'N/A'}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">Total Open Interest</div>
+        <div class="stat-value">${formatLargeNumber(data.open_interest_total)}</div>
+        <div class="stat-sub">Calls: ${formatLargeNumber(data.calls_oi)} | Puts: ${formatLargeNumber(data.puts_oi)}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">24h Volume</div>
+        <div class="stat-value">${formatLargeNumber(data.volume_24h_total)}</div>
+        <div class="stat-sub">${data.symbol} contracts</div>
+      </div>
+    `;
+
+    // Put/Call OI doughnut chart
+    renderPCChart(data.calls_oi, data.puts_oi);
+
+    // IV by expiration bar chart
+    renderIVChart(data.key_expirations || []);
+
+    // Expirations table
+    const tbody = document.getElementById('expirations-body');
+    tbody.innerHTML = '';
+    (data.key_expirations || []).forEach(exp => {
+      const pcStyle = exp.pc_ratio > 1 ? 'color:var(--red)' : exp.pc_ratio < 0.7 ? 'color:var(--green)' : '';
+      tbody.innerHTML += `
+        <tr>
+          <td style="text-align:left;font-weight:500;">${exp.expiration}</td>
+          <td style="text-align:right;">${formatLargeNumber(exp.call_oi)}</td>
+          <td style="text-align:right;">${formatLargeNumber(exp.put_oi)}</td>
+          <td style="text-align:right;font-weight:600;">${formatLargeNumber(exp.total_oi)}</td>
+          <td style="text-align:right;${pcStyle}">${exp.pc_ratio != null ? exp.pc_ratio.toFixed(3) : '-'}</td>
+          <td style="text-align:right;">${exp.avg_iv != null ? exp.avg_iv.toFixed(1) + '%' : '-'}</td>
+          <td style="text-align:right;">${exp.call_volume.toFixed(1)}</td>
+          <td style="text-align:right;">${exp.put_volume.toFixed(1)}</td>
+        </tr>`;
+    });
+
+  } catch (e) {
+    statsDiv.innerHTML = `<div class="empty-state">Failed to load options data. ${e.message}</div>`;
+  }
+}
+
+function renderPCChart(callsOi, putsOi) {
+  const canvas = document.getElementById('pc-oi-chart');
+  if (pcOiChart) pcOiChart.destroy();
+
+  pcOiChart = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Calls', 'Puts'],
+      datasets: [{
+        data: [callsOi, putsOi],
+        backgroundColor: ['rgba(34,197,94,0.7)', 'rgba(239,68,68,0.7)'],
+        borderColor: ['#22c55e', '#ef4444'],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8b8fa3', padding: 16 } },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          titleColor: '#e4e6eb',
+          bodyColor: '#e4e6eb',
+          callbacks: {
+            label: ctx => `${ctx.label}: ${formatLargeNumber(ctx.parsed)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderIVChart(expirations) {
+  const canvas = document.getElementById('iv-chart');
+  if (ivChart) ivChart.destroy();
+
+  const labels = expirations.map(e => e.expiration).slice(0, 8);
+  const ivData = expirations.map(e => e.avg_iv).slice(0, 8);
+
+  ivChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Avg IV %',
+        data: ivData,
+        backgroundColor: 'rgba(168,85,247,0.5)',
+        borderColor: '#a855f7',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          titleColor: '#e4e6eb',
+          bodyColor: '#e4e6eb',
+          callbacks: { label: ctx => `IV: ${ctx.parsed.y?.toFixed(1)}%` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42,45,58,0.5)' },
+          ticks: { color: '#8b8fa3', font: { size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(42,45,58,0.5)' },
+          ticks: { color: '#8b8fa3', callback: v => v + '%' }
+        }
+      }
+    }
+  });
+}
+
 /* ── Chart Rendering ──────────────────────────────────────────────── */
 function renderChart(canvasId, data, chartRef) {
   const canvas = document.getElementById(canvasId);
   const ctx = canvas.getContext('2d');
 
-  // Destroy existing chart
   if (chartRef === 'indexChart' && indexChart) indexChart.destroy();
   if (chartRef === 'forexChart' && forexChart) forexChart.destroy();
+  if (chartRef === 'cryptoChart' && cryptoChart) cryptoChart.destroy();
 
   const timestamps = (data.timestamps || []).map(t => {
     const d = new Date(t * 1000);
@@ -152,7 +363,6 @@ function renderChart(canvasId, data, chartRef) {
   });
   const prices = data.prices || [];
 
-  // Determine color based on price movement
   const isUp = prices.length >= 2 && prices[prices.length - 1] >= prices[0];
   const lineColor = isUp ? '#22c55e' : '#ef4444';
   const fillColor = isUp ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
@@ -205,15 +415,18 @@ function renderChart(canvasId, data, chartRef) {
 
   if (chartRef === 'indexChart') indexChart = chart;
   if (chartRef === 'forexChart') forexChart = chart;
+  if (chartRef === 'cryptoChart') cryptoChart = chart;
 }
 
 async function loadMiniChart(assetId, type) {
   const canvas = document.getElementById('mini-' + assetId);
   if (!canvas) return;
   try {
-    const endpoint = type === 'index'
-      ? `/markets/indices/${assetId}?period=1w`
-      : `/markets/forex/${assetId}?period=1w`;
+    let endpoint;
+    if (type === 'index') endpoint = `/markets/indices/${assetId}?period=1w`;
+    else if (type === 'forex') endpoint = `/markets/forex/${assetId}?period=1w`;
+    else endpoint = `/markets/crypto/${assetId}?period=1w`;
+
     const data = await api(endpoint);
     const prices = (data.prices || []).filter(p => p != null);
     if (prices.length < 2) return;
@@ -291,33 +504,29 @@ async function loadAllPredictions() {
 
   const indices = ['sp500', 'nasdaq', 'dow', 'kospi', 'shanghai', 'nikkei', 'ftse', 'dax', 'eurostoxx'];
   const forex = ['usd_krw', 'usd_cny', 'usd_jpy', 'eur_usd', 'gbp_usd'];
+  const crypto = ['btc', 'eth'];
   let html = '';
 
-  // Stock indices predictions
   html += '<div class="section-label" style="margin-top:16px;">Stock Index Predictions</div>';
   for (const id of indices) {
-    html += `<div class="card" id="pred-${id}">
-      <div class="card-header"><h2>${id.toUpperCase()}</h2></div>
-      <div class="predictions-grid" id="pred-cards-${id}">
-        <div class="loading"><div class="spinner"></div></div>
-      </div>
-    </div>`;
+    html += `<div class="card"><div class="card-header"><h2>${id.toUpperCase()}</h2></div>
+      <div class="predictions-grid" id="pred-cards-${id}"><div class="loading"><div class="spinner"></div></div></div></div>`;
   }
 
-  // Forex predictions
   html += '<div class="section-label" style="margin-top:24px;">Forex Predictions</div>';
   for (const id of forex) {
-    html += `<div class="card" id="pred-${id}">
-      <div class="card-header"><h2>${id.replace('_', '/').toUpperCase()}</h2></div>
-      <div class="predictions-grid" id="pred-cards-${id}">
-        <div class="loading"><div class="spinner"></div></div>
-      </div>
-    </div>`;
+    html += `<div class="card"><div class="card-header"><h2>${id.replace('_', '/').toUpperCase()}</h2></div>
+      <div class="predictions-grid" id="pred-cards-${id}"><div class="loading"><div class="spinner"></div></div></div></div>`;
+  }
+
+  html += '<div class="section-label" style="margin-top:24px;">Crypto Predictions</div>';
+  for (const id of crypto) {
+    html += `<div class="card"><div class="card-header"><h2>${id.toUpperCase()}</h2></div>
+      <div class="predictions-grid" id="pred-cards-${id}"><div class="loading"><div class="spinner"></div></div></div></div>`;
   }
 
   container.innerHTML = html;
 
-  // Load predictions in parallel batches
   const loadBatch = async (ids, type) => {
     for (const id of ids) {
       loadPredictionCards(id, type, `pred-cards-${id}`);
@@ -325,6 +534,7 @@ async function loadAllPredictions() {
   };
   loadBatch(indices, 'index');
   loadBatch(forex, 'forex');
+  loadBatch(crypto, 'crypto');
 }
 
 /* ── News Impact ──────────────────────────────────────────────────── */
@@ -425,7 +635,6 @@ async function openNewsDetail(newsId) {
       ${article.url ? `<a href="${escapeHtml(article.url)}" target="_blank" class="source-link">Read Original Source</a>` : ''}
     `;
 
-    // Related articles
     if (related.length > 0) {
       html += `<div class="related-section">
         <h3>Related News</h3>
@@ -484,6 +693,15 @@ function formatNumber(n) {
   return n.toFixed(4);
 }
 
+function formatLargeNumber(n) {
+  if (n == null) return 'N/A';
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toLocaleString('en-US', { maximumFractionDigits: 1 });
+}
+
 function escapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
@@ -493,4 +711,4 @@ function escapeHtml(text) {
 
 /* ── Init ──────────────────────────────────────────────────────────── */
 loadIndices();
-setInterval(checkPredictionChanges, 60000); // Check for prediction changes every minute
+setInterval(checkPredictionChanges, 60000);

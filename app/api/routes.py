@@ -10,10 +10,14 @@ from app.services.agents import run_simulation
 from app.services.extractor import extract_entities
 from app.services.fetcher import fetch_all, load_sources
 from app.services.market_data import (
+    CRYPTO_ASSETS,
     FOREX_PAIRS,
     STOCK_INDICES,
+    get_all_crypto_summary,
     get_all_forex_summary,
     get_all_indices_summary,
+    get_crypto_data,
+    get_crypto_options,
     get_forex_data,
     get_index_data,
 )
@@ -82,19 +86,48 @@ def market_overview():
     return jsonify({
         "indices": get_all_indices_summary(),
         "forex": get_all_forex_summary(),
+        "crypto": get_all_crypto_summary(),
         "available_indices": {k: v["name"] for k, v in STOCK_INDICES.items()},
         "available_forex": {k: v["name"] for k, v in FOREX_PAIRS.items()},
+        "available_crypto": {k: v["name"] for k, v in CRYPTO_ASSETS.items()},
     })
+
+
+# ── Crypto ───────────────────────────────────────────────────────────
+
+@api_bp.route("/markets/crypto", methods=["GET"])
+def crypto_summary():
+    """Get current prices for BTC and ETH."""
+    return jsonify({"crypto": get_all_crypto_summary()})
+
+
+@api_bp.route("/markets/crypto/<crypto_id>", methods=["GET"])
+def crypto_detail(crypto_id):
+    """Get historical data for a crypto asset."""
+    period = request.args.get("period", "1m")
+    data = get_crypto_data(crypto_id, period)
+    if "error" in data and not data.get("timestamps"):
+        return jsonify(data), 404
+    return jsonify(data)
+
+
+@api_bp.route("/markets/crypto/<crypto_id>/options", methods=["GET"])
+def crypto_options(crypto_id):
+    """Get options data for a crypto asset (from Deribit)."""
+    data = get_crypto_options(crypto_id)
+    if "error" in data:
+        return jsonify(data), 404
+    return jsonify(data)
 
 
 # ── Predictions ──────────────────────────────────────────────────────
 
 @api_bp.route("/predictions/<asset_type>/<asset_id>", methods=["GET"])
 def get_prediction(asset_type, asset_id):
-    """Get predictions for a specific asset (index or forex pair).
+    """Get predictions for a specific asset.
 
-    asset_type: 'index' or 'forex'
-    asset_id: e.g. 'sp500', 'usd_krw'
+    asset_type: 'index', 'forex', or 'crypto'
+    asset_id: e.g. 'sp500', 'usd_krw', 'btc'
     """
     # Check for cached prediction first
     cached = get_stored_prediction(asset_id)
@@ -107,6 +140,8 @@ def get_prediction(asset_type, asset_id):
         market_data = get_index_data(asset_id, period)
     elif asset_type == "forex":
         market_data = get_forex_data(asset_id, period)
+    elif asset_type == "crypto":
+        market_data = get_crypto_data(asset_id, period)
     else:
         return jsonify({"error": f"Unknown asset type: {asset_type}"}), 400
 

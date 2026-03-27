@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from app.services.llm import chat_json
-from app.services.market_data import FOREX_PAIRS, STOCK_INDICES
+from app.services.market_data import CRYPTO_ASSETS, FOREX_PAIRS, STOCK_INDICES
 from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -166,6 +166,8 @@ def generate_prediction(
     """Generate predictions for all time horizons for a single asset."""
     if asset_type == "index":
         asset_info = STOCK_INDICES.get(asset_id, {})
+    elif asset_type == "crypto":
+        asset_info = CRYPTO_ASSETS.get(asset_id, {})
     else:
         asset_info = FOREX_PAIRS.get(asset_id, {})
 

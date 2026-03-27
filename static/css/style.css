@@ -269,6 +269,49 @@ a:hover { text-decoration: underline; }
 .modal .related-section { margin-top: 24px; }
 .modal .related-section h3 { font-size: 14px; color: var(--text-dim); margin-bottom: 12px; }
 
+/* ── Options Stats ────────────────────────────────────────────────── */
+.stat-tile {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-tile .stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.stat-tile .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+.stat-tile .stat-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.crypto-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.crypto-meta span { white-space: nowrap; }
+
+#expirations-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+#expirations-table tbody td {
+  padding: 8px;
+  font-size: 13px;
+}
+
 /* ── Prediction Change Alerts ────────────────────────────────────── */
 .change-alert {
   background: rgba(245,158,11,0.1);
