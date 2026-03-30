@@ -207,8 +207,8 @@ var rsi_mid_l = plot(rsi_show ? 50.0    : na, "RSI Mid", col_rsi_mid, 1, style=p
 rsi_ob_fill_top = plot(rsi_show ? 100.0 : na, "RSI 100", color.new(color.white, 100), display=display.pane)
 rsi_os_fill_bot = plot(rsi_show ? 0.0   : na, "RSI 0",   color.new(color.white, 100), display=display.pane)
 
-fill(rsi_ob_l, rsi_ob_fill_top, color=rsi_show ? col_rsi_bg_ob : na, title="RSI OB Zone", display=display.pane)
-fill(rsi_os_l, rsi_os_fill_bot, color=rsi_show ? col_rsi_bg_os : na, title="RSI OS Zone", display=display.pane)
+fill(rsi_ob_l, rsi_ob_fill_top, color=rsi_show ? col_rsi_bg_ob : na, title="RSI OB Zone")
+fill(rsi_os_l, rsi_os_fill_bot, color=rsi_show ? col_rsi_bg_os : na, title="RSI OS Zone")
 
 // ──────────────────────────────────────────────
 // ██  ALERTS
