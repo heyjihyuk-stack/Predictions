@@ -10,13 +10,15 @@
 <body>
 
 <header class="app-header">
-  <h1><span>Predictions</span> | Market & Global Affairs</h1>
-  <nav class="nav-tabs">
+  <h1><span>Predictions</span></h1>
+  <nav class="nav-tabs" id="main-nav">
     <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
     <button class="nav-tab" data-tab="markets">Markets</button>
     <button class="nav-tab" data-tab="forex">Forex</button>
     <button class="nav-tab" data-tab="crypto">Crypto</button>
-    <button class="nav-tab" data-tab="news">News Impact</button>
+    <button class="nav-tab" data-tab="news">News</button>
+    <button class="nav-tab" data-tab="signals">Signals</button>
+    <button class="nav-tab" data-tab="scenarios">Scenarios</button>
     <button class="nav-tab" data-tab="predictions">Predictions</button>
   </nav>
 </header>
@@ -24,153 +26,143 @@
 <main class="container">
   <div id="change-alerts"></div>
 
-  <!-- Dashboard Tab -->
+  <!-- Dashboard -->
   <section id="tab-dashboard" class="tab-content">
     <div class="loading" id="dashboard-loading"><div class="spinner"></div> Loading dashboard...</div>
     <div id="dashboard-content" style="display:none;">
-      <!-- Sentiment Gauge -->
-      <div class="card" id="sentiment-card">
-        <div class="card-header"><h2>Market Sentiment</h2></div>
-        <div id="sentiment-gauge"></div>
+      <!-- Fear & Greed + Sentiment Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div class="card" id="fg-card"><div class="card-header"><h2>Fear & Greed Index</h2></div><div id="fg-gauge"></div></div>
+        <div class="card" id="sentiment-card"><div class="card-header"><h2>News Sentiment</h2></div><div id="sentiment-gauge"></div></div>
       </div>
-      <!-- Market Snapshot Row -->
-      <div class="section-label">Markets at a Glance</div>
+      <div class="section-label">Markets</div>
       <div class="market-grid market-grid-compact" id="dash-markets"></div>
-      <!-- Top News -->
-      <div class="section-label" style="margin-top:20px;">Top Market-Moving News</div>
+      <div class="section-label" style="margin-top:16px;">Top News</div>
       <div id="dash-top-news"></div>
     </div>
   </section>
 
-  <!-- Markets Tab -->
+  <!-- Markets -->
   <section id="tab-markets" class="tab-content" style="display:none;">
     <div class="section-label">Global Stock Indices</div>
-    <div id="indices-grid" class="market-grid">
-      <div class="loading"><div class="spinner"></div> Loading market data...</div>
-    </div>
+    <div id="indices-grid" class="market-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="index-detail" class="card" style="display:none;">
-      <div class="card-header">
-        <h2 id="index-detail-name"></h2>
+      <div class="card-header"><h2 id="index-detail-name"></h2>
         <div class="period-selector" id="index-period-selector">
-          <button class="period-btn" data-period="1w">1W</button>
-          <button class="period-btn active" data-period="1m">1M</button>
-          <button class="period-btn" data-period="3m">3M</button>
-          <button class="period-btn" data-period="1y">1Y</button>
-          <button class="period-btn" data-period="5y">5Y</button>
+          <button class="period-btn" data-period="1w">1W</button><button class="period-btn active" data-period="1m">1M</button>
+          <button class="period-btn" data-period="3m">3M</button><button class="period-btn" data-period="1y">1Y</button><button class="period-btn" data-period="5y">5Y</button>
         </div>
       </div>
       <div class="chart-container"><canvas id="index-chart"></canvas></div>
+      <div id="index-signals" style="margin-bottom:12px;"></div>
       <div class="predictions-grid" id="index-predictions"></div>
     </div>
   </section>
 
-  <!-- Forex Tab -->
+  <!-- Forex -->
   <section id="tab-forex" class="tab-content" style="display:none;">
     <div class="section-label">Major Forex Pairs</div>
-    <div id="forex-grid" class="market-grid">
-      <div class="loading"><div class="spinner"></div> Loading forex data...</div>
-    </div>
+    <div id="forex-grid" class="market-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="forex-detail" class="card" style="display:none;">
-      <div class="card-header">
-        <h2 id="forex-detail-name"></h2>
+      <div class="card-header"><h2 id="forex-detail-name"></h2>
         <div class="period-selector" id="forex-period-selector">
-          <button class="period-btn" data-period="1w">1W</button>
-          <button class="period-btn active" data-period="1m">1M</button>
-          <button class="period-btn" data-period="3m">3M</button>
-          <button class="period-btn" data-period="1y">1Y</button>
-          <button class="period-btn" data-period="5y">5Y</button>
+          <button class="period-btn" data-period="1w">1W</button><button class="period-btn active" data-period="1m">1M</button>
+          <button class="period-btn" data-period="3m">3M</button><button class="period-btn" data-period="1y">1Y</button><button class="period-btn" data-period="5y">5Y</button>
         </div>
       </div>
       <div class="chart-container"><canvas id="forex-chart"></canvas></div>
+      <div id="forex-signals" style="margin-bottom:12px;"></div>
       <div class="predictions-grid" id="forex-predictions"></div>
     </div>
   </section>
 
-  <!-- Crypto Tab -->
+  <!-- Crypto -->
   <section id="tab-crypto" class="tab-content" style="display:none;">
     <div class="section-label">Crypto Markets</div>
-    <div id="crypto-grid" class="market-grid">
-      <div class="loading"><div class="spinner"></div> Loading crypto data...</div>
-    </div>
+    <div id="crypto-grid" class="market-grid"><div class="loading"><div class="spinner"></div></div></div>
     <div id="crypto-detail" class="card" style="display:none;">
-      <div class="card-header">
-        <h2 id="crypto-detail-name"></h2>
+      <div class="card-header"><h2 id="crypto-detail-name"></h2>
         <div class="period-selector" id="crypto-period-selector">
-          <button class="period-btn" data-period="1w">1W</button>
-          <button class="period-btn active" data-period="1m">1M</button>
-          <button class="period-btn" data-period="3m">3M</button>
-          <button class="period-btn" data-period="1y">1Y</button>
-          <button class="period-btn" data-period="5y">5Y</button>
+          <button class="period-btn" data-period="1w">1W</button><button class="period-btn active" data-period="1m">1M</button>
+          <button class="period-btn" data-period="3m">3M</button><button class="period-btn" data-period="1y">1Y</button><button class="period-btn" data-period="5y">5Y</button>
         </div>
       </div>
       <div class="chart-container"><canvas id="crypto-chart"></canvas></div>
+      <div id="crypto-signals" style="margin-bottom:12px;"></div>
       <div class="predictions-grid" id="crypto-predictions"></div>
     </div>
     <div id="options-panel" class="card" style="display:none;">
-      <div class="card-header"><h2 id="options-title">Options Data</h2></div>
-      <div class="market-grid" id="options-stats" style="margin-bottom:16px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div>
-          <div class="section-label">Put/Call Open Interest</div>
-          <div class="chart-container" style="height:250px;"><canvas id="pc-oi-chart"></canvas></div>
-        </div>
-        <div>
-          <div class="section-label">Implied Volatility by Expiration</div>
-          <div class="chart-container" style="height:250px;"><canvas id="iv-chart"></canvas></div>
-        </div>
+      <div class="card-header"><h2 id="options-title">Options</h2></div>
+      <div class="market-grid" id="options-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+        <div><div class="section-label">Put/Call OI</div><div class="chart-container" style="height:220px;"><canvas id="pc-oi-chart"></canvas></div></div>
+        <div><div class="section-label">IV by Expiry</div><div class="chart-container" style="height:220px;"><canvas id="iv-chart"></canvas></div></div>
       </div>
-      <div class="section-label" style="margin-top:16px;">Key Expirations</div>
-      <div style="overflow-x:auto;">
-        <table id="expirations-table" style="width:100%;font-size:13px;border-collapse:collapse;">
-          <thead>
-            <tr style="border-bottom:1px solid var(--border);color:var(--text-dim);">
-              <th style="text-align:left;padding:8px;">Expiry</th>
-              <th style="text-align:right;padding:8px;">Call OI</th>
-              <th style="text-align:right;padding:8px;">Put OI</th>
-              <th style="text-align:right;padding:8px;">Total OI</th>
-              <th style="text-align:right;padding:8px;">P/C Ratio</th>
-              <th style="text-align:right;padding:8px;">Avg IV</th>
-              <th style="text-align:right;padding:8px;">Call Vol</th>
-              <th style="text-align:right;padding:8px;">Put Vol</th>
-            </tr>
-          </thead>
-          <tbody id="expirations-body"></tbody>
-        </table>
-      </div>
+      <div class="section-label" style="margin-top:12px;">Expirations</div>
+      <div style="overflow-x:auto;"><table id="expirations-table" style="width:100%;font-size:12px;border-collapse:collapse;">
+        <thead><tr style="border-bottom:1px solid var(--border);color:var(--text-dim);">
+          <th style="text-align:left;padding:6px;">Expiry</th><th style="text-align:right;padding:6px;">Call OI</th><th style="text-align:right;padding:6px;">Put OI</th>
+          <th style="text-align:right;padding:6px;">Total</th><th style="text-align:right;padding:6px;">P/C</th><th style="text-align:right;padding:6px;">IV</th>
+        </tr></thead><tbody id="expirations-body"></tbody>
+      </table></div>
     </div>
   </section>
 
-  <!-- News Impact Tab -->
+  <!-- News -->
   <section id="tab-news" class="tab-content" style="display:none;">
     <div class="card">
       <div class="card-header">
-        <h2>News Impact Index</h2>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <h2>News Impact</h2>
+        <div style="display:flex;gap:6px;align-items:center;">
           <div class="period-selector" id="news-sort-selector">
-            <button class="period-btn active" data-sort="impact">By Impact</button>
-            <button class="period-btn" data-sort="time">By Time</button>
+            <button class="period-btn active" data-sort="impact">Impact</button>
+            <button class="period-btn" data-sort="time">Time</button>
           </div>
-          <button class="period-btn" onclick="loadNewsImpact()" style="background:var(--accent);color:#fff;padding:6px 14px;border-radius:6px;">Refresh</button>
+          <button class="period-btn" onclick="loadNewsImpact()" style="background:var(--accent);color:#fff;">Refresh</button>
         </div>
       </div>
-      <!-- Sentiment bar -->
-      <div id="news-sentiment-bar" style="margin-bottom:16px;"></div>
-      <div id="news-clusters">
-        <div class="loading"><div class="spinner"></div> Analyzing news impact...</div>
-      </div>
+      <div id="news-sentiment-bar" style="margin-bottom:12px;"></div>
+      <div id="news-clusters"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </section>
 
-  <!-- Predictions Tab -->
-  <section id="tab-predictions" class="tab-content" style="display:none;">
-    <div class="section-label">All Market Predictions</div>
-    <div id="all-predictions">
-      <div class="loading"><div class="spinner"></div> Loading predictions...</div>
+  <!-- Trading Signals -->
+  <section id="tab-signals" class="tab-content" style="display:none;">
+    <div class="section-label">Trading Signals</div>
+    <div class="card">
+      <div class="card-header"><h2>Select Asset</h2></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="signal-asset-buttons"></div>
     </div>
+    <div id="signals-result" style="display:none;">
+      <div class="card" id="signals-summary-card"></div>
+      <div class="card" id="signals-action-card"></div>
+      <div class="card" id="signals-list-card"></div>
+    </div>
+  </section>
+
+  <!-- Scenarios -->
+  <section id="tab-scenarios" class="tab-content" style="display:none;">
+    <div class="section-label">What-If Scenario Simulator</div>
+    <div class="card">
+      <div class="card-header"><h2>Run Scenario</h2></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;" id="preset-scenarios"></div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="scenario-input" placeholder="Or type a custom scenario..."
+          style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;">
+        <button onclick="runScenarioFromInput()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">Analyze</button>
+      </div>
+    </div>
+    <div id="scenario-result" style="display:none;"></div>
+  </section>
+
+  <!-- Predictions -->
+  <section id="tab-predictions" class="tab-content" style="display:none;">
+    <div class="section-label">All Predictions</div>
+    <div id="all-predictions"><div class="loading"><div class="spinner"></div></div></div>
   </section>
 </main>
 
-<!-- News Detail Modal -->
+<!-- Modal -->
 <div class="modal-overlay" id="news-modal">
   <div class="modal" style="position:relative;">
     <button class="close-btn" onclick="closeModal()">&times;</button>

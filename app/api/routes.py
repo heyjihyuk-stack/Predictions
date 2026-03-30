@@ -36,6 +36,11 @@ from app.services.predictor import (
     get_stored_prediction,
 )
 from app.services.reporter import generate_report
+from app.services.trading_signals import generate_trading_summary
+from app.services.fear_greed import compute_fear_greed, get_history as get_fg_history
+from app.services.scenario_engine import get_preset_scenarios, run_scenario
+from app.services.knowledge_graph import KnowledgeGraph
+from app.services.action_logger import ActionLogger
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +65,30 @@ def dashboard():
     # Top 5 clusters by impact
     top_clusters = sorted(clusters, key=lambda c: c["max_impact"], reverse=True)[:5]
 
+    # Fear & Greed
+    options_data = {}
+    try:
+        from app.services.market_data import get_crypto_options
+        btc_opts = get_crypto_options("btc")
+        options_data["put_call_ratio"] = btc_opts.get("put_call_ratio")
+        options_data["implied_volatility"] = btc_opts.get("implied_volatility")
+    except Exception:
+        pass
+    fear_greed_data = compute_fear_greed(indices, sentiment, options_data or None)
+
+    # Feed knowledge graph
+    try:
+        kg = KnowledgeGraph()
+        kg.ingest_scored_news(scored)
+    except Exception as e:
+        logger.warning("Knowledge graph ingestion failed: %s", e)
+
     return jsonify({
         "indices": indices,
         "forex": forex,
         "crypto": crypto,
         "sentiment": sentiment,
+        "fear_greed": fear_greed_data,
         "top_news": top_clusters,
         "total_articles": len(scored),
         "timestamp": datetime.utcnow().isoformat(),
@@ -81,6 +105,13 @@ def health():
 @api_bp.route("/sources", methods=["GET"])
 def sources():
     return jsonify(load_sources())
+
+
+@api_bp.route("/fear-greed/history", methods=["GET"])
+def fear_greed_history():
+    """Get historical Fear & Greed scores."""
+    hours = int(request.args.get("hours", 168))
+    return jsonify({"history": get_fg_history(hours)})
 
 
 # ── Market Data ──────────────────────────────────────────────────────
@@ -298,6 +329,144 @@ def extract():
         ],
     })
 
+
+# ── Trading Signals ──────────────────────────────────────────────────
+
+@api_bp.route("/signals/<asset_type>/<asset_id>", methods=["GET"])
+def trading_signals(asset_type, asset_id):
+    """Get technical trading signals for an asset."""
+    period = "3m"
+    if asset_type == "index":
+        data = get_index_data(asset_id, period)
+    elif asset_type == "forex":
+        data = get_forex_data(asset_id, period)
+    elif asset_type == "crypto":
+        data = get_crypto_data(asset_id, period)
+    else:
+        return jsonify({"error": "Unknown asset type"}), 400
+
+    prices = [p for p in (data.get("prices") or []) if p is not None]
+    volumes = [v for v in (data.get("volumes") or []) if v is not None]
+    if not prices or len(prices) < 20:
+        return jsonify({"error": "Not enough price data for signals"}), 400
+
+    summary = generate_trading_summary(prices, volumes or None)
+    summary["asset_id"] = asset_id
+    summary["asset_type"] = asset_type
+    return jsonify(summary)
+
+
+# ── Fear & Greed ─────────────────────────────────────────────────────
+
+@api_bp.route("/fear-greed", methods=["GET"])
+def fear_greed():
+    """Compute composite Fear & Greed index."""
+    indices = get_all_indices_summary()
+    articles = fetch_all()
+    scored = score_news_batch(articles)
+    sentiment = get_market_sentiment_summary(scored)
+
+    # Get crypto options for put/call ratio
+    options_data = {}
+    try:
+        from app.services.market_data import get_crypto_options
+        btc_opts = get_crypto_options("btc")
+        options_data["put_call_ratio"] = btc_opts.get("put_call_ratio")
+        options_data["implied_volatility"] = btc_opts.get("implied_volatility")
+    except Exception:
+        pass
+
+    result = compute_fear_greed(indices, sentiment, options_data or None)
+    return jsonify(result)
+
+
+# ── Scenarios ────────────────────────────────────────────────────────
+
+@api_bp.route("/scenarios", methods=["GET"])
+def scenarios_list():
+    """Get list of preset scenario options."""
+    return jsonify({"scenarios": get_preset_scenarios()})
+
+
+@api_bp.route("/scenarios/run", methods=["POST"])
+def scenarios_run():
+    """Run a what-if scenario analysis."""
+    data = request.get_json(silent=True) or {}
+    description = data.get("scenario", "")
+    if not description:
+        return jsonify({"error": "scenario description required"}), 400
+
+    market_state = {}
+    try:
+        indices = get_all_indices_summary()
+        for idx in indices[:3]:
+            market_state[idx["name"]] = f"{idx.get('current_price', 'N/A')} ({idx.get('change_pct', 0):+.2f}%)"
+    except Exception:
+        pass
+
+    graph_summary = None
+    try:
+        kg = KnowledgeGraph()
+        graph_summary = kg.get_graph_summary()
+    except Exception:
+        pass
+
+    result = run_scenario(description, market_state, graph_summary)
+    return jsonify(result)
+
+
+# ── Knowledge Graph ──────────────────────────────────────────────────
+
+@api_bp.route("/knowledge-graph", methods=["GET"])
+def knowledge_graph_summary():
+    """Get knowledge graph summary."""
+    kg = KnowledgeGraph()
+    summary = kg.get_graph_summary()
+    return jsonify(summary)
+
+
+@api_bp.route("/knowledge-graph/entity/<name>", methods=["GET"])
+def knowledge_graph_entity(name):
+    """Get entity details and relationships from knowledge graph."""
+    kg = KnowledgeGraph()
+    entity = kg.get_entity(name)
+    if not entity:
+        return jsonify({"error": "Entity not found"}), 404
+
+    relationships = kg.get_relationships(name)
+    impact_chain = kg.get_impact_chain(name)
+
+    return jsonify({
+        "entity": {
+            "name": entity.name,
+            "type": entity.entity_type,
+            "mention_count": entity.mention_count,
+            "first_seen": entity.first_seen.isoformat() if entity.first_seen else None,
+            "last_seen": entity.last_seen.isoformat() if entity.last_seen else None,
+        },
+        "relationships": [
+            {
+                "source": e.source, "target": e.target,
+                "type": e.relation_type, "weight": e.weight,
+                "evidence": e.evidence[:3],
+            }
+            for e in relationships
+        ],
+        "impact_chain": impact_chain,
+    })
+
+
+# ── Audit Trail ──────────────────────────────────────────────────────
+
+@api_bp.route("/audit/<asset_id>", methods=["GET"])
+def audit_trail(asset_id):
+    """Get prediction audit trail for an asset."""
+    al = ActionLogger()
+    trail = al.export_trail(asset_id)
+    return jsonify({"asset_id": asset_id, "actions": trail})
+
+
+# ── Full Analysis Pipeline ───────────────────────────────────────────
 
 @api_bp.route("/analyze", methods=["POST"])
 def analyze():

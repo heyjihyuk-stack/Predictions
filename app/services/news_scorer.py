@@ -20,9 +20,15 @@ from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+import threading
+
 # In-memory store for scored news
 _news_store: dict[str, dict] = {}
 _clusters: list[dict] = []
+
+# Sentiment history tracking
+_sentiment_lock = threading.Lock()
+_sentiment_history: list[dict] = []
 
 
 def _extract_keywords(text: str) -> set[str]:
@@ -386,6 +392,36 @@ def get_market_sentiment_summary(scored_articles: list[dict]) -> dict:
     else:
         overall = "neutral"
 
+    # Track history
+    snapshot = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "score": sentiment_score,
+        "overall": overall,
+        "bullish_pct": bullish_pct,
+        "bearish_pct": bearish_pct,
+    }
+    with _sentiment_lock:
+        _sentiment_history.append(snapshot)
+        if len(_sentiment_history) > 500:
+            _sentiment_history.pop(0)
+
+    # Compute deltas
+    delta_1d = None
+    delta_7d = None
+    with _sentiment_lock:
+        if len(_sentiment_history) >= 2:
+            from datetime import timedelta
+            now = datetime.utcnow()
+            target_1d = (now - timedelta(hours=24)).isoformat()
+            target_7d = (now - timedelta(days=7)).isoformat()
+            for snap in reversed(_sentiment_history[:-1]):
+                if delta_1d is None and snap["timestamp"] <= target_1d:
+                    delta_1d = sentiment_score - snap["score"]
+                if delta_7d is None and snap["timestamp"] <= target_7d:
+                    delta_7d = sentiment_score - snap["score"]
+                if delta_1d is not None and delta_7d is not None:
+                    break
+
     return {
         "overall": overall,
         "score": sentiment_score,
@@ -393,4 +429,6 @@ def get_market_sentiment_summary(scored_articles: list[dict]) -> dict:
         "bearish_pct": bearish_pct,
         "neutral_pct": neutral_pct,
         "total_articles": len(scored_articles),
+        "delta_1d": delta_1d,
+        "delta_7d": delta_7d,
     }

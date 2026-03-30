@@ -42,7 +42,8 @@ async function loadDashboard() {
     loading.style.display = 'none';
     content.style.display = 'block';
 
-    // Sentiment gauge
+    // Fear & Greed + Sentiment gauges
+    renderFearGreedGauge(data.fear_greed, 'fg-gauge');
     renderSentimentGauge(data.sentiment, 'sentiment-gauge');
 
     // Market snapshot
@@ -81,6 +82,34 @@ function miniTile(id, name, price, changePct, sub) {
   </div>`;
 }
 
+function renderDelta(val, suffix = '') {
+  if (val == null) return '';
+  const sign = val >= 0 ? '+' : '';
+  const color = val > 0 ? 'var(--green)' : val < 0 ? 'var(--red)' : 'var(--text-dim)';
+  return `<span style="color:${color};font-size:12px;font-weight:500;">${sign}${val}${suffix}</span>`;
+}
+
+function renderFearGreedGauge(fg, containerId) {
+  if (!fg) return;
+  const color = fg.score >= 60 ? 'var(--green)' : fg.score <= 40 ? 'var(--red)' : 'var(--orange)';
+  const pct = fg.score;
+  document.getElementById(containerId).innerHTML = `
+    <div style="text-align:center;">
+      <div class="sentiment-score-big" style="color:${color}">${fg.score}</div>
+      <div class="sentiment-label" style="color:${color}">${fg.label}</div>
+      <div class="sentiment-stats" style="margin-top:6px;">
+        ${fg.delta_1d != null ? `<span>24h: ${renderDelta(fg.delta_1d)}</span>` : ''}
+        ${fg.delta_7d != null ? `<span>7d: ${renderDelta(fg.delta_7d)}</span>` : ''}
+      </div>
+      <div style="margin-top:10px;height:8px;background:linear-gradient(to right, var(--red), var(--orange), var(--green));border-radius:4px;position:relative;">
+        <div style="position:absolute;left:${pct}%;top:-3px;width:14px;height:14px;background:#fff;border-radius:50%;transform:translateX(-50%);border:2px solid ${color};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:4px;">
+        <span>Fear</span><span>Greed</span>
+      </div>
+    </div>`;
+}
+
 function renderSentimentGauge(s, containerId) {
   if (!s) return;
   const color = s.overall === 'bullish' ? 'var(--green)' : s.overall === 'bearish' ? 'var(--red)' : 'var(--text-dim)';
@@ -91,19 +120,23 @@ function renderSentimentGauge(s, containerId) {
         <div class="sentiment-label" style="color:${color}">${s.overall.toUpperCase()}</div>
         <div class="sentiment-stats">
           <span style="color:var(--green)">Bull ${s.bullish_pct}%</span>
-          <span>Neutral ${s.neutral_pct}%</span>
+          <span>Neutral ${s.neutral_pct || 0}%</span>
           <span style="color:var(--red)">Bear ${s.bearish_pct}%</span>
+        </div>
+        <div class="sentiment-stats" style="margin-top:4px;">
+          ${s.delta_1d != null ? `<span>24h: ${renderDelta(s.delta_1d)}</span>` : ''}
+          ${s.delta_7d != null ? `<span>7d: ${renderDelta(s.delta_7d)}</span>` : ''}
         </div>
       </div>
       <div class="sentiment-meter">
         <div class="sentiment-bar-track">
           <div class="bar-bull" style="width:${s.bullish_pct}%"></div>
-          <div class="bar-neutral" style="width:${s.neutral_pct}%"></div>
+          <div class="bar-neutral" style="width:${s.neutral_pct || 0}%"></div>
           <div class="bar-bear" style="width:${s.bearish_pct}%"></div>
         </div>
         <div class="sentiment-labels">
           <span>Bullish</span>
-          <span>${s.total_articles || 0} articles analyzed</span>
+          <span>${s.total_articles || 0} articles</span>
           <span>Bearish</span>
         </div>
       </div>
