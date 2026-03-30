@@ -1,0 +1,41 @@
+// This Pine Script™ source code is subject to the terms of the Mozilla Public License 2.0
+// https://mozilla.org/MPL/2.0/
+// © Multi-Indicator Suite - RSI
+
+//@version=6
+indicator("RSI Panel", overlay=false)
+
+// ──────────────────────────────────────────────
+// ██  RSI
+// ──────────────────────────────────────────────
+grp_rsi = "━━━ RSI ━━━"
+rsi_len      = input.int(14, "RSI Length", minval=1, group=grp_rsi)
+rsi_src      = input.source(close, "RSI Source", group=grp_rsi)
+rsi_ob       = input.int(70, "Overbought", minval=50, maxval=100, group=grp_rsi)
+rsi_os       = input.int(30, "Oversold", minval=0, maxval=50, group=grp_rsi)
+col_rsi      = input.color(color.new(#7E57C2, 0), "RSI Color", group=grp_rsi)
+col_rsi_ob   = input.color(color.new(#FF5252, 0), "OB Line", group=grp_rsi)
+col_rsi_os   = input.color(color.new(#4CAF50, 0), "OS Line", group=grp_rsi)
+col_rsi_mid  = input.color(color.new(#787B86, 50), "Mid Line", group=grp_rsi)
+col_rsi_bg_ob = input.color(color.new(#FF5252, 90), "OB Zone Fill", group=grp_rsi)
+col_rsi_bg_os = input.color(color.new(#4CAF50, 90), "OS Zone Fill", group=grp_rsi)
+rsi_width    = input.int(2, "RSI Width", minval=1, maxval=5, group=grp_rsi)
+
+rsi_val = ta.rsi(rsi_src, rsi_len)
+
+rsi_p    = plot(rsi_val,       "RSI",     col_rsi,    rsi_width)
+ob_p     = plot(float(rsi_ob), "RSI OB",  col_rsi_ob, 1, style=plot.style_line)
+os_p     = plot(float(rsi_os), "RSI OS",  col_rsi_os, 1, style=plot.style_line)
+mid_p    = plot(50.0,          "RSI Mid", col_rsi_mid, 1, style=plot.style_line)
+
+top_p    = plot(100.0, "RSI 100", color.new(color.white, 100))
+bot_p    = plot(0.0,   "RSI 0",   color.new(color.white, 100))
+
+fill(ob_p, top_p, color=col_rsi_bg_ob, title="OB Zone")
+fill(os_p, bot_p, color=col_rsi_bg_os, title="OS Zone")
+
+// ──────────────────────────────────────────────
+// ██  ALERTS
+// ──────────────────────────────────────────────
+alertcondition(ta.crossover(rsi_val, rsi_os),  "RSI Crosses Above Oversold",  "RSI crossed above oversold")
+alertcondition(ta.crossunder(rsi_val, rsi_ob), "RSI Crosses Below Overbought","RSI crossed below overbought")

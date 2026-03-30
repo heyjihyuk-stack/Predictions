@@ -178,42 +178,8 @@ p_bbl = plot(bb_show_lower ? bb_lower : na, "BB Lower", col_bb_lo,  bb_lo_w,  st
 fill(p_bbu, p_bbl, color=bb_show_fill and bb_show_upper and bb_show_lower ? col_bb_bg : na, title="BB Fill")
 
 // ──────────────────────────────────────────────
-// ██  RSI (separate pane)
-// ──────────────────────────────────────────────
-grp_rsi = "━━━ RSI ━━━"
-rsi_show     = input.bool(true, "Show RSI", group=grp_rsi)
-rsi_len      = input.int(14, "RSI Length", minval=1, group=grp_rsi)
-rsi_src      = input.source(close, "RSI Source", group=grp_rsi)
-rsi_ob       = input.int(70, "Overbought", minval=50, maxval=100, group=grp_rsi)
-rsi_os       = input.int(30, "Oversold", minval=0, maxval=50, group=grp_rsi)
-col_rsi      = input.color(color.new(#7E57C2, 0), "RSI Color", group=grp_rsi)
-col_rsi_ob   = input.color(color.new(#FF5252, 0), "OB Line", group=grp_rsi)
-col_rsi_os   = input.color(color.new(#4CAF50, 0), "OS Line", group=grp_rsi)
-col_rsi_mid  = input.color(color.new(#787B86, 50), "Mid Line", group=grp_rsi)
-col_rsi_bg_ob = input.color(color.new(#FF5252, 90), "OB Zone Fill", group=grp_rsi)
-col_rsi_bg_os = input.color(color.new(#4CAF50, 90), "OS Zone Fill", group=grp_rsi)
-rsi_width    = input.int(2, "RSI Width", minval=1, maxval=5, group=grp_rsi)
-
-rsi_val = ta.rsi(rsi_src, rsi_len)
-
-// force_overlay=false → 메인 차트가 아닌 별도 하단 pane에 표시
-rsi_line    = plot(rsi_show ? rsi_val      : na, "RSI",     col_rsi,    rsi_width, force_overlay=false)
-rsi_ob_l    = plot(rsi_show ? float(rsi_ob): na, "RSI OB",  col_rsi_ob, 1, style=plot.style_line, force_overlay=false)
-rsi_os_l    = plot(rsi_show ? float(rsi_os): na, "RSI OS",  col_rsi_os, 1, style=plot.style_line, force_overlay=false)
-rsi_mid_l   = plot(rsi_show ? 50.0         : na, "RSI Mid", col_rsi_mid, 1, style=plot.style_line, force_overlay=false)
-
-// OB / OS zone fill
-rsi_fill_top = plot(rsi_show ? 100.0 : na, "RSI 100", color.new(color.white, 100), force_overlay=false)
-rsi_fill_bot = plot(rsi_show ? 0.0   : na, "RSI 0",   color.new(color.white, 100), force_overlay=false)
-
-fill(rsi_ob_l,  rsi_fill_top, color=rsi_show ? col_rsi_bg_ob : na, title="RSI OB Zone")
-fill(rsi_os_l,  rsi_fill_bot, color=rsi_show ? col_rsi_bg_os : na, title="RSI OS Zone")
-
-// ──────────────────────────────────────────────
 // ██  ALERTS
 // ──────────────────────────────────────────────
-alertcondition(ta.crossover(rsi_val, rsi_os),  "RSI Crosses Above Oversold",  "RSI crossed above oversold ({{rsi_os}})")
-alertcondition(ta.crossunder(rsi_val, rsi_ob), "RSI Crosses Below Overbought","RSI crossed below overbought ({{rsi_ob}})")
 alertcondition(ta.crossover(tenkan, kijun),    "Tenkan/Kijun Bullish Cross",  "Tenkan crossed above Kijun")
 alertcondition(ta.crossunder(tenkan, kijun),   "Tenkan/Kijun Bearish Cross",  "Tenkan crossed below Kijun")
 alertcondition(ta.crossover(close, bb_upper),  "Price Breaks Above BB Upper", "Price broke above BB upper band")
