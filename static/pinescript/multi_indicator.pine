@@ -8,19 +8,6 @@ indicator("Multi Indicator Suite", overlay=true, max_lines_count=500, max_labels
 // ──────────────────────────────────────────────
 // ██  LINE STYLE HELPER
 // ──────────────────────────────────────────────
-_style(s) =>
-    switch s
-        "Solid"  => plot.style_line
-        "Dashed" => plot.style_line
-        "Dotted" => plot.style_cross
-        "Cross"  => plot.style_cross
-        => plot.style_line
-
-// Pine v6 doesn't have native dashed via plot style,
-// so we use line.style for reference. For plot() we map:
-//   Solid  → line, Circles → circles, Cross → cross,
-//   Stepline → stepline, SteplineDiamond → stepline_diamond
-
 _pstyle(s) =>
     switch s
         "Solid"     => plot.style_line
@@ -30,49 +17,59 @@ _pstyle(s) =>
         "StepDia"   => plot.style_stepline_diamond
         => plot.style_line
 
-STYLE_OPTIONS = array.from("Solid", "Circles", "Cross", "Stepline", "StepDia")
-
 // ──────────────────────────────────────────────
 // ██  ICHIMOKU CLOUD
 // ──────────────────────────────────────────────
 grp_ichi = "━━━ Ichimoku Cloud ━━━"
-ichi_show      = input.bool(true, "Show Ichimoku Cloud", group=grp_ichi)
-ichi_tenkan    = input.int(9, "Tenkan-sen", minval=1, group=grp_ichi)
-ichi_kijun     = input.int(26, "Kijun-sen", minval=1, group=grp_ichi)
-ichi_senkou_b  = input.int(52, "Senkou Span B", minval=1, group=grp_ichi)
-ichi_offset    = input.int(26, "Displacement", minval=1, group=grp_ichi)
-col_tenkan     = input.color(color.new(#0496ff, 0), "Tenkan Color", group=grp_ichi)
-col_kijun      = input.color(color.new(#991515, 0), "Kijun Color", group=grp_ichi)
-col_chikou     = input.color(color.new(#459915, 0), "Chikou Color", group=grp_ichi)
-col_senkou_a   = input.color(color.new(#43A047, 0), "Senkou A Color", group=grp_ichi)
-col_senkou_b   = input.color(color.new(#E53935, 0), "Senkou B Color", group=grp_ichi)
-col_cloud_bull = input.color(color.new(#43A047, 85), "Cloud Bull Fill", group=grp_ichi)
-col_cloud_bear = input.color(color.new(#E53935, 85), "Cloud Bear Fill", group=grp_ichi)
+ichi_show        = input.bool(true, "Show Ichimoku Cloud", group=grp_ichi)
+ichi_tenkan_len  = input.int(9, "Tenkan-sen Period", minval=1, group=grp_ichi)
+ichi_kijun_len   = input.int(26, "Kijun-sen Period", minval=1, group=grp_ichi)
+ichi_senkou_b_len= input.int(52, "Senkou Span B Period", minval=1, group=grp_ichi)
+ichi_offset      = input.int(26, "Displacement", minval=1, group=grp_ichi)
+
+show_tenkan    = input.bool(true, "Tenkan-sen", inline="it", group=grp_ichi)
+col_tenkan     = input.color(color.new(#0496ff, 0), "", inline="it", group=grp_ichi)
+
+show_kijun     = input.bool(true, "Kijun-sen", inline="ik", group=grp_ichi)
+col_kijun      = input.color(color.new(#991515, 0), "", inline="ik", group=grp_ichi)
+
+show_chikou    = input.bool(true, "Chikou Span", inline="ic", group=grp_ichi)
+col_chikou     = input.color(color.new(#459915, 0), "", inline="ic", group=grp_ichi)
+
+show_senkou_a  = input.bool(true, "Senkou A", inline="isa", group=grp_ichi)
+col_senkou_a   = input.color(color.new(#43A047, 0), "", inline="isa", group=grp_ichi)
+
+show_senkou_b  = input.bool(true, "Senkou B", inline="isb", group=grp_ichi)
+col_senkou_b   = input.color(color.new(#E53935, 0), "", inline="isb", group=grp_ichi)
+
+show_cloud     = input.bool(true, "Cloud Fill", inline="icf", group=grp_ichi)
+col_cloud_bull = input.color(color.new(#43A047, 85), "Bull", inline="icf", group=grp_ichi)
+col_cloud_bear = input.color(color.new(#E53935, 85), "Bear", inline="icf", group=grp_ichi)
 
 _donchian(len) =>
     math.avg(ta.lowest(len), ta.highest(len))
 
-tenkan  = _donchian(ichi_tenkan)
-kijun   = _donchian(ichi_kijun)
+tenkan  = _donchian(ichi_tenkan_len)
+kijun   = _donchian(ichi_kijun_len)
 senkouA = math.avg(tenkan, kijun)
-senkouB = _donchian(ichi_senkou_b)
+senkouB = _donchian(ichi_senkou_b_len)
 
-plot(ichi_show ? tenkan : na, "Tenkan-sen", col_tenkan)
-plot(ichi_show ? kijun : na, "Kijun-sen", col_kijun)
-plot(ichi_show ? close : na, "Chikou Span", col_chikou, offset=-ichi_offset + 1)
+plot(ichi_show and show_tenkan  ? tenkan : na, "Tenkan-sen",  col_tenkan)
+plot(ichi_show and show_kijun   ? kijun  : na, "Kijun-sen",   col_kijun)
+plot(ichi_show and show_chikou  ? close  : na, "Chikou Span", col_chikou, offset=-ichi_offset + 1)
 
-p_sa = plot(ichi_show ? senkouA : na, "Senkou A", col_senkou_a, offset=ichi_offset - 1)
-p_sb = plot(ichi_show ? senkouB : na, "Senkou B", col_senkou_b, offset=ichi_offset - 1)
-fill(p_sa, p_sb, color=ichi_show ? (senkouA >= senkouB ? col_cloud_bull : col_cloud_bear) : na, title="Ichimoku Cloud")
+p_sa = plot(ichi_show and show_senkou_a ? senkouA : na, "Senkou A", col_senkou_a, offset=ichi_offset - 1)
+p_sb = plot(ichi_show and show_senkou_b ? senkouB : na, "Senkou B", col_senkou_b, offset=ichi_offset - 1)
+fill(p_sa, p_sb, color=ichi_show and show_cloud ? (senkouA >= senkouB ? col_cloud_bull : col_cloud_bear) : na, title="Ichimoku Cloud")
 
 // ──────────────────────────────────────────────
-// ██  VWAP
+// ██  VWAP  (기본 점선 스타일)
 // ──────────────────────────────────────────────
 grp_vwap = "━━━ VWAP ━━━"
 vwap_show   = input.bool(true, "Show VWAP", group=grp_vwap)
 col_vwap    = input.color(color.new(#FF6D00, 0), "VWAP Color", group=grp_vwap)
 vwap_width  = input.int(2, "VWAP Width", minval=1, maxval=5, group=grp_vwap)
-vwap_style  = input.string("Solid", "VWAP Style", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], group=grp_vwap)
+vwap_style  = input.string("Cross", "VWAP Style", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], group=grp_vwap)
 
 vwap_show_upper = input.bool(false, "Show Upper Band", inline="vu", group=grp_vwap)
 col_vwap_upper  = input.color(color.new(#FF6D00, 50), "", inline="vu", group=grp_vwap)
@@ -80,7 +77,7 @@ vwap_show_lower = input.bool(false, "Show Lower Band", inline="vl", group=grp_vw
 col_vwap_lower  = input.color(color.new(#FF6D00, 50), "", inline="vl", group=grp_vwap)
 vwap_band_mult  = input.float(1.0, "Band Multiplier", minval=0.1, step=0.1, group=grp_vwap)
 col_vwap_fill   = input.color(color.new(#FF6D00, 90), "Band Fill", group=grp_vwap)
-vwap_band_style = input.string("Solid", "Band Style", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], group=grp_vwap)
+vwap_band_style = input.string("Cross", "Band Style", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], group=grp_vwap)
 
 vwap_val = ta.vwap
 plot(vwap_show ? vwap_val : na, "VWAP", col_vwap, vwap_width, style=_pstyle(vwap_style))
@@ -142,29 +139,29 @@ plot(ema1008_show ? ta.ema(close, 1008) : na, "EMA 1008", col_ema1008, ema1008_w
 plot(ema4160_show ? ta.ema(close, 4160) : na, "EMA 4160", col_ema4160, ema4160_w, style=_pstyle(ema4160_style))
 
 // ──────────────────────────────────────────────
-// ██  BOLLINGER BANDS
+// ██  BOLLINGER BANDS  (기본 OFF)
 // ──────────────────────────────────────────────
 grp_bb = "━━━ Bollinger Bands ━━━"
 bb_len     = input.int(20, "BB Length", minval=1, group=grp_bb)
 bb_mult    = input.float(2.0, "BB Multiplier", minval=0.1, step=0.1, group=grp_bb)
 bb_src     = input.source(close, "BB Source", group=grp_bb)
 
-bb_show_upper = input.bool(true, "Upper Band", inline="bbu", group=grp_bb)
+bb_show_upper = input.bool(false, "Upper Band", inline="bbu", group=grp_bb)
 col_bb_up     = input.color(color.new(#2196F3, 0), "", inline="bbu", group=grp_bb)
 bb_up_style   = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="bbu", group=grp_bb)
 bb_up_w       = input.int(1, "", minval=1, maxval=5, inline="bbu", group=grp_bb)
 
-bb_show_mid   = input.bool(true, "Middle Band", inline="bbm", group=grp_bb)
+bb_show_mid   = input.bool(false, "Middle Band", inline="bbm", group=grp_bb)
 col_bb_mid    = input.color(color.new(#787B86, 0), "", inline="bbm", group=grp_bb)
 bb_mid_style  = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="bbm", group=grp_bb)
 bb_mid_w      = input.int(1, "", minval=1, maxval=5, inline="bbm", group=grp_bb)
 
-bb_show_lower = input.bool(true, "Lower Band", inline="bbl", group=grp_bb)
+bb_show_lower = input.bool(false, "Lower Band", inline="bbl", group=grp_bb)
 col_bb_lo     = input.color(color.new(#2196F3, 0), "", inline="bbl", group=grp_bb)
 bb_lo_style   = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="bbl", group=grp_bb)
 bb_lo_w       = input.int(1, "", minval=1, maxval=5, inline="bbl", group=grp_bb)
 
-bb_show_fill  = input.bool(true, "Show Fill", inline="bbf", group=grp_bb)
+bb_show_fill  = input.bool(false, "Show Fill", inline="bbf", group=grp_bb)
 col_bb_bg     = input.color(color.new(#2196F3, 90), "", inline="bbf", group=grp_bb)
 
 bb_basis = ta.sma(bb_src, bb_len)
