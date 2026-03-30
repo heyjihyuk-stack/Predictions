@@ -196,19 +196,18 @@ rsi_width    = input.int(2, "RSI Width", minval=1, maxval=5, group=grp_rsi)
 
 rsi_val = ta.rsi(rsi_src, rsi_len)
 
-// RSI는 overlay 인디케이터에선 직접 패널을 만들 수 없으므로
-// plot + display 옵션으로 별도 pane에 표시
-var rsi_line  = plot(rsi_show ? rsi_val : na, "RSI", col_rsi, rsi_width, display=display.pane)
-var rsi_ob_l  = plot(rsi_show ? rsi_ob  : na, "RSI OB", col_rsi_ob, 1, style=plot.style_line, display=display.pane)
-var rsi_os_l  = plot(rsi_show ? rsi_os  : na, "RSI OS", col_rsi_os, 1, style=plot.style_line, display=display.pane)
-var rsi_mid_l = plot(rsi_show ? 50.0    : na, "RSI Mid", col_rsi_mid, 1, style=plot.style_line, display=display.pane)
+// force_overlay=false → 메인 차트가 아닌 별도 하단 pane에 표시
+rsi_line    = plot(rsi_show ? rsi_val      : na, "RSI",     col_rsi,    rsi_width, force_overlay=false)
+rsi_ob_l    = plot(rsi_show ? float(rsi_ob): na, "RSI OB",  col_rsi_ob, 1, style=plot.style_line, force_overlay=false)
+rsi_os_l    = plot(rsi_show ? float(rsi_os): na, "RSI OS",  col_rsi_os, 1, style=plot.style_line, force_overlay=false)
+rsi_mid_l   = plot(rsi_show ? 50.0         : na, "RSI Mid", col_rsi_mid, 1, style=plot.style_line, force_overlay=false)
 
 // OB / OS zone fill
-rsi_ob_fill_top = plot(rsi_show ? 100.0 : na, "RSI 100", color.new(color.white, 100), display=display.pane)
-rsi_os_fill_bot = plot(rsi_show ? 0.0   : na, "RSI 0",   color.new(color.white, 100), display=display.pane)
+rsi_fill_top = plot(rsi_show ? 100.0 : na, "RSI 100", color.new(color.white, 100), force_overlay=false)
+rsi_fill_bot = plot(rsi_show ? 0.0   : na, "RSI 0",   color.new(color.white, 100), force_overlay=false)
 
-fill(rsi_ob_l, rsi_ob_fill_top, color=rsi_show ? col_rsi_bg_ob : na, title="RSI OB Zone")
-fill(rsi_os_l, rsi_os_fill_bot, color=rsi_show ? col_rsi_bg_os : na, title="RSI OS Zone")
+fill(rsi_ob_l,  rsi_fill_top, color=rsi_show ? col_rsi_bg_ob : na, title="RSI OB Zone")
+fill(rsi_os_l,  rsi_fill_bot, color=rsi_show ? col_rsi_bg_os : na, title="RSI OS Zone")
 
 // ──────────────────────────────────────────────
 // ██  ALERTS
