@@ -6,6 +6,33 @@
 indicator("Multi Indicator Suite", overlay=true, max_lines_count=500, max_labels_count=500)
 
 // ──────────────────────────────────────────────
+// ██  LINE STYLE HELPER
+// ──────────────────────────────────────────────
+_style(s) =>
+    switch s
+        "Solid"  => plot.style_line
+        "Dashed" => plot.style_line
+        "Dotted" => plot.style_cross
+        "Cross"  => plot.style_cross
+        => plot.style_line
+
+// Pine v6 doesn't have native dashed via plot style,
+// so we use line.style for reference. For plot() we map:
+//   Solid  → line, Circles → circles, Cross → cross,
+//   Stepline → stepline, SteplineDiamond → stepline_diamond
+
+_pstyle(s) =>
+    switch s
+        "Solid"     => plot.style_line
+        "Circles"   => plot.style_circles
+        "Cross"     => plot.style_cross
+        "Stepline"  => plot.style_stepline
+        "StepDia"   => plot.style_stepline_diamond
+        => plot.style_line
+
+STYLE_OPTIONS = array.from("Solid", "Circles", "Cross", "Stepline", "StepDia")
+
+// ──────────────────────────────────────────────
 // ██  ICHIMOKU CLOUD
 // ──────────────────────────────────────────────
 grp_ichi = "━━━ Ichimoku Cloud ━━━"
@@ -42,70 +69,113 @@ fill(p_sa, p_sb, color=ichi_show ? (senkouA >= senkouB ? col_cloud_bull : col_cl
 // ██  VWAP
 // ──────────────────────────────────────────────
 grp_vwap = "━━━ VWAP ━━━"
-vwap_show  = input.bool(true, "Show VWAP", group=grp_vwap)
-col_vwap   = input.color(color.new(#FF6D00, 0), "VWAP Color", group=grp_vwap)
-vwap_width = input.int(2, "VWAP Width", minval=1, maxval=5, group=grp_vwap)
+vwap_show   = input.bool(true, "Show VWAP", group=grp_vwap)
+col_vwap    = input.color(color.new(#FF6D00, 0), "VWAP Color", group=grp_vwap)
+vwap_width  = input.int(2, "VWAP Width", minval=1, maxval=5, group=grp_vwap)
+vwap_style  = input.string("Solid", "VWAP Style", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], group=grp_vwap)
+
+vwap_show_upper = input.bool(false, "Show Upper Band", inline="vu", group=grp_vwap)
+col_vwap_upper  = input.color(color.new(#FF6D00, 50), "", inline="vu", group=grp_vwap)
+vwap_show_lower = input.bool(false, "Show Lower Band", inline="vl", group=grp_vwap)
+col_vwap_lower  = input.color(color.new(#FF6D00, 50), "", inline="vl", group=grp_vwap)
+vwap_band_mult  = input.float(1.0, "Band Multiplier", minval=0.1, step=0.1, group=grp_vwap)
+col_vwap_fill   = input.color(color.new(#FF6D00, 90), "Band Fill", group=grp_vwap)
+vwap_band_style = input.string("Solid", "Band Style", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], group=grp_vwap)
 
 vwap_val = ta.vwap
-plot(vwap_show ? vwap_val : na, "VWAP", col_vwap, vwap_width)
+plot(vwap_show ? vwap_val : na, "VWAP", col_vwap, vwap_width, style=_pstyle(vwap_style))
+
+// VWAP bands (standard deviation based)
+vwap_dev     = ta.stdev(close - vwap_val, 20) * vwap_band_mult
+vwap_upper_v = vwap_val + vwap_dev
+vwap_lower_v = vwap_val - vwap_dev
+p_vwap_u = plot(vwap_show and vwap_show_upper ? vwap_upper_v : na, "VWAP Upper", col_vwap_upper, 1, style=_pstyle(vwap_band_style))
+p_vwap_l = plot(vwap_show and vwap_show_lower ? vwap_lower_v : na, "VWAP Lower", col_vwap_lower, 1, style=_pstyle(vwap_band_style))
+fill(p_vwap_u, p_vwap_l, color=vwap_show and vwap_show_upper and vwap_show_lower ? col_vwap_fill : na, title="VWAP Band Fill")
 
 // ──────────────────────────────────────────────
 // ██  EMA (9, 20, 50, 120, 365, 1008, 4160)
 // ──────────────────────────────────────────────
 grp_ema = "━━━ EMA ━━━"
-ema9_show    = input.bool(true, "EMA 9", inline="e9", group=grp_ema)
-col_ema9     = input.color(color.new(#FFEB3B, 0), "", inline="e9", group=grp_ema)
 
-ema20_show   = input.bool(true, "EMA 20", inline="e20", group=grp_ema)
-col_ema20    = input.color(color.new(#FF9800, 0), "", inline="e20", group=grp_ema)
+ema9_show     = input.bool(true, "EMA 9", inline="e9", group=grp_ema)
+col_ema9      = input.color(color.new(#FFEB3B, 0), "", inline="e9", group=grp_ema)
+ema9_style    = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e9", group=grp_ema)
+ema9_w        = input.int(2, "", minval=1, maxval=5, inline="e9", group=grp_ema)
 
-ema50_show   = input.bool(true, "EMA 50", inline="e50", group=grp_ema)
-col_ema50    = input.color(color.new(#F44336, 0), "", inline="e50", group=grp_ema)
+ema20_show    = input.bool(true, "EMA 20", inline="e20", group=grp_ema)
+col_ema20     = input.color(color.new(#FF9800, 0), "", inline="e20", group=grp_ema)
+ema20_style   = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e20", group=grp_ema)
+ema20_w       = input.int(2, "", minval=1, maxval=5, inline="e20", group=grp_ema)
 
-ema120_show  = input.bool(true, "EMA 120", inline="e120", group=grp_ema)
-col_ema120   = input.color(color.new(#E040FB, 0), "", inline="e120", group=grp_ema)
+ema50_show    = input.bool(true, "EMA 50", inline="e50", group=grp_ema)
+col_ema50     = input.color(color.new(#F44336, 0), "", inline="e50", group=grp_ema)
+ema50_style   = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e50", group=grp_ema)
+ema50_w       = input.int(2, "", minval=1, maxval=5, inline="e50", group=grp_ema)
 
-ema365_show  = input.bool(false, "EMA 365", inline="e365", group=grp_ema)
-col_ema365   = input.color(color.new(#00BCD4, 0), "", inline="e365", group=grp_ema)
+ema120_show   = input.bool(true, "EMA 120", inline="e120", group=grp_ema)
+col_ema120    = input.color(color.new(#E040FB, 0), "", inline="e120", group=grp_ema)
+ema120_style  = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e120", group=grp_ema)
+ema120_w      = input.int(2, "", minval=1, maxval=5, inline="e120", group=grp_ema)
 
-ema1008_show = input.bool(false, "EMA 1008", inline="e1008", group=grp_ema)
-col_ema1008  = input.color(color.new(#3F51B5, 0), "", inline="e1008", group=grp_ema)
+ema365_show   = input.bool(false, "EMA 365", inline="e365", group=grp_ema)
+col_ema365    = input.color(color.new(#00BCD4, 0), "", inline="e365", group=grp_ema)
+ema365_style  = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e365", group=grp_ema)
+ema365_w      = input.int(2, "", minval=1, maxval=5, inline="e365", group=grp_ema)
 
-ema4160_show = input.bool(false, "EMA 4160", inline="e4160", group=grp_ema)
-col_ema4160  = input.color(color.new(#795548, 0), "", inline="e4160", group=grp_ema)
+ema1008_show  = input.bool(false, "EMA 1008", inline="e1008", group=grp_ema)
+col_ema1008   = input.color(color.new(#3F51B5, 0), "", inline="e1008", group=grp_ema)
+ema1008_style = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e1008", group=grp_ema)
+ema1008_w     = input.int(2, "", minval=1, maxval=5, inline="e1008", group=grp_ema)
 
-ema_width    = input.int(2, "EMA Line Width", minval=1, maxval=5, group=grp_ema)
+ema4160_show  = input.bool(false, "EMA 4160", inline="e4160", group=grp_ema)
+col_ema4160   = input.color(color.new(#795548, 0), "", inline="e4160", group=grp_ema)
+ema4160_style = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="e4160", group=grp_ema)
+ema4160_w     = input.int(2, "", minval=1, maxval=5, inline="e4160", group=grp_ema)
 
-plot(ema9_show    ? ta.ema(close, 9)    : na, "EMA 9",    col_ema9,    ema_width)
-plot(ema20_show   ? ta.ema(close, 20)   : na, "EMA 20",   col_ema20,   ema_width)
-plot(ema50_show   ? ta.ema(close, 50)   : na, "EMA 50",   col_ema50,   ema_width)
-plot(ema120_show  ? ta.ema(close, 120)  : na, "EMA 120",  col_ema120,  ema_width)
-plot(ema365_show  ? ta.ema(close, 365)  : na, "EMA 365",  col_ema365,  ema_width)
-plot(ema1008_show ? ta.ema(close, 1008) : na, "EMA 1008", col_ema1008, ema_width)
-plot(ema4160_show ? ta.ema(close, 4160) : na, "EMA 4160", col_ema4160, ema_width)
+plot(ema9_show    ? ta.ema(close, 9)    : na, "EMA 9",    col_ema9,    ema9_w,    style=_pstyle(ema9_style))
+plot(ema20_show   ? ta.ema(close, 20)   : na, "EMA 20",   col_ema20,   ema20_w,   style=_pstyle(ema20_style))
+plot(ema50_show   ? ta.ema(close, 50)   : na, "EMA 50",   col_ema50,   ema50_w,   style=_pstyle(ema50_style))
+plot(ema120_show  ? ta.ema(close, 120)  : na, "EMA 120",  col_ema120,  ema120_w,  style=_pstyle(ema120_style))
+plot(ema365_show  ? ta.ema(close, 365)  : na, "EMA 365",  col_ema365,  ema365_w,  style=_pstyle(ema365_style))
+plot(ema1008_show ? ta.ema(close, 1008) : na, "EMA 1008", col_ema1008, ema1008_w, style=_pstyle(ema1008_style))
+plot(ema4160_show ? ta.ema(close, 4160) : na, "EMA 4160", col_ema4160, ema4160_w, style=_pstyle(ema4160_style))
 
 // ──────────────────────────────────────────────
 // ██  BOLLINGER BANDS
 // ──────────────────────────────────────────────
 grp_bb = "━━━ Bollinger Bands ━━━"
-bb_show    = input.bool(true, "Show Bollinger Bands", group=grp_bb)
 bb_len     = input.int(20, "BB Length", minval=1, group=grp_bb)
 bb_mult    = input.float(2.0, "BB Multiplier", minval=0.1, step=0.1, group=grp_bb)
 bb_src     = input.source(close, "BB Source", group=grp_bb)
-col_bb_up  = input.color(color.new(#2196F3, 0), "Upper Band", group=grp_bb)
-col_bb_mid = input.color(color.new(#787B86, 0), "Middle Band", group=grp_bb)
-col_bb_lo  = input.color(color.new(#2196F3, 0), "Lower Band", group=grp_bb)
-col_bb_bg  = input.color(color.new(#2196F3, 90), "BB Fill", group=grp_bb)
+
+bb_show_upper = input.bool(true, "Upper Band", inline="bbu", group=grp_bb)
+col_bb_up     = input.color(color.new(#2196F3, 0), "", inline="bbu", group=grp_bb)
+bb_up_style   = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="bbu", group=grp_bb)
+bb_up_w       = input.int(1, "", minval=1, maxval=5, inline="bbu", group=grp_bb)
+
+bb_show_mid   = input.bool(true, "Middle Band", inline="bbm", group=grp_bb)
+col_bb_mid    = input.color(color.new(#787B86, 0), "", inline="bbm", group=grp_bb)
+bb_mid_style  = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="bbm", group=grp_bb)
+bb_mid_w      = input.int(1, "", minval=1, maxval=5, inline="bbm", group=grp_bb)
+
+bb_show_lower = input.bool(true, "Lower Band", inline="bbl", group=grp_bb)
+col_bb_lo     = input.color(color.new(#2196F3, 0), "", inline="bbl", group=grp_bb)
+bb_lo_style   = input.string("Solid", "", options=["Solid", "Circles", "Cross", "Stepline", "StepDia"], inline="bbl", group=grp_bb)
+bb_lo_w       = input.int(1, "", minval=1, maxval=5, inline="bbl", group=grp_bb)
+
+bb_show_fill  = input.bool(true, "Show Fill", inline="bbf", group=grp_bb)
+col_bb_bg     = input.color(color.new(#2196F3, 90), "", inline="bbf", group=grp_bb)
 
 bb_basis = ta.sma(bb_src, bb_len)
 bb_dev   = bb_mult * ta.stdev(bb_src, bb_len)
 bb_upper = bb_basis + bb_dev
 bb_lower = bb_basis - bb_dev
 
-p_bbu = plot(bb_show ? bb_upper : na, "BB Upper", col_bb_up)
-plot(bb_show ? bb_basis : na, "BB Basis", col_bb_mid)
-p_bbl = plot(bb_show ? bb_lower : na, "BB Lower", col_bb_lo)
-fill(p_bbu, p_bbl, color=bb_show ? col_bb_bg : na, title="BB Fill")
+p_bbu = plot(bb_show_upper ? bb_upper : na, "BB Upper", col_bb_up,  bb_up_w,  style=_pstyle(bb_up_style))
+plot(bb_show_mid ? bb_basis : na, "BB Basis", col_bb_mid, bb_mid_w, style=_pstyle(bb_mid_style))
+p_bbl = plot(bb_show_lower ? bb_lower : na, "BB Lower", col_bb_lo,  bb_lo_w,  style=_pstyle(bb_lo_style))
+fill(p_bbu, p_bbl, color=bb_show_fill and bb_show_upper and bb_show_lower ? col_bb_bg : na, title="BB Fill")
 
 // ──────────────────────────────────────────────
 // ██  RSI (separate pane)
