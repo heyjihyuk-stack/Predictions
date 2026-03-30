@@ -1,0 +1,151 @@
+// This Pine Script™ source code is subject to the terms of the Mozilla Public License 2.0
+// https://mozilla.org/MPL/2.0/
+// © Multi-Indicator Suite
+
+//@version=6
+indicator("Multi Indicator Suite", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// ──────────────────────────────────────────────
+// ██  ICHIMOKU CLOUD
+// ──────────────────────────────────────────────
+grp_ichi = "━━━ Ichimoku Cloud ━━━"
+ichi_show      = input.bool(true, "Show Ichimoku Cloud", group=grp_ichi)
+ichi_tenkan    = input.int(9, "Tenkan-sen", minval=1, group=grp_ichi)
+ichi_kijun     = input.int(26, "Kijun-sen", minval=1, group=grp_ichi)
+ichi_senkou_b  = input.int(52, "Senkou Span B", minval=1, group=grp_ichi)
+ichi_offset    = input.int(26, "Displacement", minval=1, group=grp_ichi)
+col_tenkan     = input.color(color.new(#0496ff, 0), "Tenkan Color", group=grp_ichi)
+col_kijun      = input.color(color.new(#991515, 0), "Kijun Color", group=grp_ichi)
+col_chikou     = input.color(color.new(#459915, 0), "Chikou Color", group=grp_ichi)
+col_senkou_a   = input.color(color.new(#43A047, 0), "Senkou A Color", group=grp_ichi)
+col_senkou_b   = input.color(color.new(#E53935, 0), "Senkou B Color", group=grp_ichi)
+col_cloud_bull = input.color(color.new(#43A047, 85), "Cloud Bull Fill", group=grp_ichi)
+col_cloud_bear = input.color(color.new(#E53935, 85), "Cloud Bear Fill", group=grp_ichi)
+
+_donchian(len) =>
+    math.avg(ta.lowest(len), ta.highest(len))
+
+tenkan  = _donchian(ichi_tenkan)
+kijun   = _donchian(ichi_kijun)
+senkouA = math.avg(tenkan, kijun)
+senkouB = _donchian(ichi_senkou_b)
+
+plot(ichi_show ? tenkan : na, "Tenkan-sen", col_tenkan)
+plot(ichi_show ? kijun : na, "Kijun-sen", col_kijun)
+plot(ichi_show ? close : na, "Chikou Span", col_chikou, offset=-ichi_offset + 1)
+
+p_sa = plot(ichi_show ? senkouA : na, "Senkou A", col_senkou_a, offset=ichi_offset - 1)
+p_sb = plot(ichi_show ? senkouB : na, "Senkou B", col_senkou_b, offset=ichi_offset - 1)
+fill(p_sa, p_sb, color=ichi_show ? (senkouA >= senkouB ? col_cloud_bull : col_cloud_bear) : na, title="Ichimoku Cloud")
+
+// ──────────────────────────────────────────────
+// ██  VWAP
+// ──────────────────────────────────────────────
+grp_vwap = "━━━ VWAP ━━━"
+vwap_show  = input.bool(true, "Show VWAP", group=grp_vwap)
+col_vwap   = input.color(color.new(#FF6D00, 0), "VWAP Color", group=grp_vwap)
+vwap_width = input.int(2, "VWAP Width", minval=1, maxval=5, group=grp_vwap)
+
+vwap_val = ta.vwap
+plot(vwap_show ? vwap_val : na, "VWAP", col_vwap, vwap_width)
+
+// ──────────────────────────────────────────────
+// ██  EMA (9, 20, 50, 120, 365, 1008, 4160)
+// ──────────────────────────────────────────────
+grp_ema = "━━━ EMA ━━━"
+ema9_show    = input.bool(true, "EMA 9", inline="e9", group=grp_ema)
+col_ema9     = input.color(color.new(#FFEB3B, 0), "", inline="e9", group=grp_ema)
+
+ema20_show   = input.bool(true, "EMA 20", inline="e20", group=grp_ema)
+col_ema20    = input.color(color.new(#FF9800, 0), "", inline="e20", group=grp_ema)
+
+ema50_show   = input.bool(true, "EMA 50", inline="e50", group=grp_ema)
+col_ema50    = input.color(color.new(#F44336, 0), "", inline="e50", group=grp_ema)
+
+ema120_show  = input.bool(true, "EMA 120", inline="e120", group=grp_ema)
+col_ema120   = input.color(color.new(#E040FB, 0), "", inline="e120", group=grp_ema)
+
+ema365_show  = input.bool(false, "EMA 365", inline="e365", group=grp_ema)
+col_ema365   = input.color(color.new(#00BCD4, 0), "", inline="e365", group=grp_ema)
+
+ema1008_show = input.bool(false, "EMA 1008", inline="e1008", group=grp_ema)
+col_ema1008  = input.color(color.new(#3F51B5, 0), "", inline="e1008", group=grp_ema)
+
+ema4160_show = input.bool(false, "EMA 4160", inline="e4160", group=grp_ema)
+col_ema4160  = input.color(color.new(#795548, 0), "", inline="e4160", group=grp_ema)
+
+ema_width    = input.int(2, "EMA Line Width", minval=1, maxval=5, group=grp_ema)
+
+plot(ema9_show    ? ta.ema(close, 9)    : na, "EMA 9",    col_ema9,    ema_width)
+plot(ema20_show   ? ta.ema(close, 20)   : na, "EMA 20",   col_ema20,   ema_width)
+plot(ema50_show   ? ta.ema(close, 50)   : na, "EMA 50",   col_ema50,   ema_width)
+plot(ema120_show  ? ta.ema(close, 120)  : na, "EMA 120",  col_ema120,  ema_width)
+plot(ema365_show  ? ta.ema(close, 365)  : na, "EMA 365",  col_ema365,  ema_width)
+plot(ema1008_show ? ta.ema(close, 1008) : na, "EMA 1008", col_ema1008, ema_width)
+plot(ema4160_show ? ta.ema(close, 4160) : na, "EMA 4160", col_ema4160, ema_width)
+
+// ──────────────────────────────────────────────
+// ██  BOLLINGER BANDS
+// ──────────────────────────────────────────────
+grp_bb = "━━━ Bollinger Bands ━━━"
+bb_show    = input.bool(true, "Show Bollinger Bands", group=grp_bb)
+bb_len     = input.int(20, "BB Length", minval=1, group=grp_bb)
+bb_mult    = input.float(2.0, "BB Multiplier", minval=0.1, step=0.1, group=grp_bb)
+bb_src     = input.source(close, "BB Source", group=grp_bb)
+col_bb_up  = input.color(color.new(#2196F3, 0), "Upper Band", group=grp_bb)
+col_bb_mid = input.color(color.new(#787B86, 0), "Middle Band", group=grp_bb)
+col_bb_lo  = input.color(color.new(#2196F3, 0), "Lower Band", group=grp_bb)
+col_bb_bg  = input.color(color.new(#2196F3, 90), "BB Fill", group=grp_bb)
+
+bb_basis = ta.sma(bb_src, bb_len)
+bb_dev   = bb_mult * ta.stdev(bb_src, bb_len)
+bb_upper = bb_basis + bb_dev
+bb_lower = bb_basis - bb_dev
+
+p_bbu = plot(bb_show ? bb_upper : na, "BB Upper", col_bb_up)
+plot(bb_show ? bb_basis : na, "BB Basis", col_bb_mid)
+p_bbl = plot(bb_show ? bb_lower : na, "BB Lower", col_bb_lo)
+fill(p_bbu, p_bbl, color=bb_show ? col_bb_bg : na, title="BB Fill")
+
+// ──────────────────────────────────────────────
+// ██  RSI (separate pane)
+// ──────────────────────────────────────────────
+grp_rsi = "━━━ RSI ━━━"
+rsi_show     = input.bool(true, "Show RSI", group=grp_rsi)
+rsi_len      = input.int(14, "RSI Length", minval=1, group=grp_rsi)
+rsi_src      = input.source(close, "RSI Source", group=grp_rsi)
+rsi_ob       = input.int(70, "Overbought", minval=50, maxval=100, group=grp_rsi)
+rsi_os       = input.int(30, "Oversold", minval=0, maxval=50, group=grp_rsi)
+col_rsi      = input.color(color.new(#7E57C2, 0), "RSI Color", group=grp_rsi)
+col_rsi_ob   = input.color(color.new(#FF5252, 0), "OB Line", group=grp_rsi)
+col_rsi_os   = input.color(color.new(#4CAF50, 0), "OS Line", group=grp_rsi)
+col_rsi_mid  = input.color(color.new(#787B86, 50), "Mid Line", group=grp_rsi)
+col_rsi_bg_ob = input.color(color.new(#FF5252, 90), "OB Zone Fill", group=grp_rsi)
+col_rsi_bg_os = input.color(color.new(#4CAF50, 90), "OS Zone Fill", group=grp_rsi)
+rsi_width    = input.int(2, "RSI Width", minval=1, maxval=5, group=grp_rsi)
+
+rsi_val = ta.rsi(rsi_src, rsi_len)
+
+// RSI는 overlay 인디케이터에선 직접 패널을 만들 수 없으므로
+// plot + display 옵션으로 별도 pane에 표시
+var rsi_line  = plot(rsi_show ? rsi_val : na, "RSI", col_rsi, rsi_width, display=display.pane)
+var rsi_ob_l  = plot(rsi_show ? rsi_ob  : na, "RSI OB", col_rsi_ob, 1, style=plot.style_line, display=display.pane)
+var rsi_os_l  = plot(rsi_show ? rsi_os  : na, "RSI OS", col_rsi_os, 1, style=plot.style_line, display=display.pane)
+var rsi_mid_l = plot(rsi_show ? 50.0    : na, "RSI Mid", col_rsi_mid, 1, style=plot.style_line, display=display.pane)
+
+// OB / OS zone fill
+rsi_ob_fill_top = plot(rsi_show ? 100.0 : na, "RSI 100", color.new(color.white, 100), display=display.pane)
+rsi_os_fill_bot = plot(rsi_show ? 0.0   : na, "RSI 0",   color.new(color.white, 100), display=display.pane)
+
+fill(rsi_ob_l, rsi_ob_fill_top, color=rsi_show ? col_rsi_bg_ob : na, title="RSI OB Zone", display=display.pane)
+fill(rsi_os_l, rsi_os_fill_bot, color=rsi_show ? col_rsi_bg_os : na, title="RSI OS Zone", display=display.pane)
+
+// ──────────────────────────────────────────────
+// ██  ALERTS
+// ──────────────────────────────────────────────
+alertcondition(ta.crossover(rsi_val, rsi_os),  "RSI Crosses Above Oversold",  "RSI crossed above oversold ({{rsi_os}})")
+alertcondition(ta.crossunder(rsi_val, rsi_ob), "RSI Crosses Below Overbought","RSI crossed below overbought ({{rsi_ob}})")
+alertcondition(ta.crossover(tenkan, kijun),    "Tenkan/Kijun Bullish Cross",  "Tenkan crossed above Kijun")
+alertcondition(ta.crossunder(tenkan, kijun),   "Tenkan/Kijun Bearish Cross",  "Tenkan crossed below Kijun")
+alertcondition(ta.crossover(close, bb_upper),  "Price Breaks Above BB Upper", "Price broke above BB upper band")
+alertcondition(ta.crossunder(close, bb_lower), "Price Breaks Below BB Lower", "Price broke below BB lower band")
